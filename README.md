@@ -99,5 +99,8 @@ sql/
 - Audit logging is used for state-changing operations (`AuditLog` table).
 - TCL demo endpoints under `/api/tcl/*` show savepoints and partial rollbacks.
 
-## Contributing
-Small fixes welcome. See `.github/copilot-instructions.md` for AI-assistant guidance and architectural conventions.
+## Contributors
+Hassaan Tariq 
+Ume Ammarah
+Laiba Khalid
+
