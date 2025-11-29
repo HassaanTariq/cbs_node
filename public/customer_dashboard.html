@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard - CBS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            background: #2c3e50;
+            color: white;
+            min-height: 100vh;
+            position: fixed;
+            width: 250px;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .nav-link {
+            color: #bdc3c7;
+            padding: 12px 20px;
+            border-left: 3px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: white;
+            background: #34495e;
+            border-left-color: #3498db;
+        }
+        .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        .account-card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .account-card:hover {
+            transform: translateY(-2px);
+        }
+        .transaction-credit { color: #28a745; }
+        .transaction-debit { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <!-- Navigation Sidebar -->
+    <div class="sidebar">
+        <div class="p-4 text-center border-bottom">
+            <h4><i class="fas fa-university me-2"></i>Customer Portal</h4>
+            <small id="customerName">Loading...</small>
+        </div>
+        
+        <nav class="nav flex-column mt-3">
+            <a class="nav-link active" href="#" data-page="dashboard">
+                <i class="fas fa-tachometer-alt"></i>Dashboard
+            </a>
+            <a class="nav-link" href="#" data-page="accounts">
+                <i class="fas fa-wallet"></i>My Accounts
+            </a>
+            <a class="nav-link" href="#" data-page="transfer">
+                <i class="fas fa-exchange-alt"></i>Transfer Funds
+            </a>
+            <a class="nav-link" href="#" data-page="transactions">
+                <i class="fas fa-history"></i>Transaction History
+            </a>
+            <a class="nav-link" href="#" data-page="statement">
+                <i class="fas fa-file-invoice"></i>Account Statement
+            </a>
+            <a class="nav-link" href="#" data-page="profile">
+                <i class="fas fa-user"></i>My Profile
+            </a>
+            <a class="nav-link text-danger" href="#" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>Logout
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Dashboard Page -->
+        <div id="dashboardPage" class="page-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h3>
+                <div class="text-muted" id="lastLogin"></div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="stats-card" style="border-left-color: #28a745;">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5 id="totalBalance">$0.00</h5>
+                                <p class="text-muted mb-0">Total Balance</p>
+                            </div>
+                            <i class="fas fa-wallet fa-2x text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card" style="border-left-color: #17a2b8;">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5 id="totalAccounts">0</h5>
+                                <p class="text-muted mb-0">Active Accounts</p>
+                            </div>
+                            <i class="fas fa-piggy-bank fa-2x text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card" style="border-left-color: #ffc107;">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5 id="recentTransactions">0</h5>
+                                <p class="text-muted mb-0">Recent Transactions</p>
+                            </div>
+                            <i class="fas fa-exchange-alt fa-2x text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accounts Overview -->
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>My Accounts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="accountsList" class="row">
+                                <!-- Accounts will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Activity</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentActivity">
+                                <!-- Recent transactions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accounts Page -->
+        <div id="accountsPage" class="page-content d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-wallet me-2"></i>My Accounts</h3>
+            </div>
+            <div id="accountsPageContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Transfer Page -->
+        <div id="transferPage" class="page-content d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-exchange-alt me-2"></i>Transfer Funds</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="transferForm">
+                                <div class="mb-3">
+                                    <label class="form-label">From Account</label>
+                                    <select name="fromAccount" class="form-control" id="fromAccountSelect" required>
+                                        <option value="">Select account...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">To Account</label>
+                                    <input type="number" name="toAccount" class="form-control" id="toAccountInput" placeholder="Enter any valid account number" required>
+                                    <small class="text-muted">You can transfer to your own accounts or to other customers' active accounts.</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Amount ($)</label>
+                                    <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Remark (Optional)</label>
+                                    <input type="text" name="remark" class="form-control" placeholder="Transfer description">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Transfer Funds
+                                </button>
+                            </form>
+                            <div id="transferResult" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Account Balances</h6>
+                        </div>
+                        <div class="card-body" id="transferAccountBalances">
+                            <p class="text-muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Transactions Page -->
+        <div id="transactionsPage" class="page-content d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-history me-2"></i>Transaction History</h3>
+            </div>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form id="transactionFilters" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Account</label>
+                            <select name="accountNo" class="form-control" id="filterAccount">
+                                <option value="">All Accounts</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Type</label>
+                            <select name="type" class="form-control">
+                                <option value="">All Types</option>
+                                <option value="deposit">Deposit</option>
+                                <option value="withdrawal">Withdrawal</option>
+                                <option value="transfer">Transfer</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="startDate" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="endDate" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div id="transactionsList">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="transactionsPagination" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statement Page -->
+        <div id="statementPage" class="page-content d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-file-invoice me-2"></i>Account Statement</h3>
+            </div>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form id="statementForm" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Account</label>
+                            <select name="accountNo" class="form-control" id="statementAccount">
+                                <option value="">All Accounts</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="startDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="endDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-download me-1"></i>Generate Statement
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div id="statementContent">
+                        <p class="text-muted text-center py-5">Select filters and click "Generate Statement" to view your account statement</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profile Page -->
+        <div id="profilePage" class="page-content d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="fas fa-user me-2"></i>My Profile</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Profile Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="profileForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" name="fullname" class="form-control" id="profileFullname" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" name="email" class="form-control" id="profileEmail" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">CNIC</label>
+                                    <input type="text" name="cnic" class="form-control" id="profileCnic" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Phone <span class="text-danger">*</span></label>
+                                    <input type="tel" name="phone" class="form-control" id="profilePhone" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Address <span class="text-danger">*</span></label>
+                                    <textarea name="address" class="form-control" id="profileAddress" rows="3" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Update Profile
+                                </button>
+                            </form>
+                            <div id="profileResult" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Account Summary</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>Member Since:</strong></p>
+                            <p class="text-muted mb-3" id="profileMemberSince">-</p>
+                            <p class="mb-2"><strong>Total Accounts:</strong></p>
+                            <p class="text-muted mb-3" id="profileTotalAccounts">-</p>
+                            <p class="mb-2"><strong>Total Balance:</strong></p>
+                            <p class="text-muted" id="profileTotalBalance">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Customer session management
+        class CustomerPortal {
+            constructor() {
+                this.token = localStorage.getItem('customerToken');
+                this.customer = JSON.parse(localStorage.getItem('customerData') || '{}');
+                this.accounts = [];
+                this.currentPage = 1;
+                this.init();
+            }
+
+            init() {
+                if (!this.token) {
+                    window.location.href = 'customer_login.html';
+                    return;
+                }
+
+                this.displayCustomerInfo();
+                this.loadDashboard();
+                this.setupNavigation();
+                this.setupLogout();
+            }
+
+            displayCustomerInfo() {
+                document.getElementById('customerName').textContent = this.customer.fullname;
+                document.getElementById('lastLogin').textContent = `Last login: ${new Date().toLocaleString()}`;
+            }
+
+            async makeAuthenticatedRequest(url, options = {}) {
+                const defaultOptions = {
+                    headers: {
+                        'Authorization': this.token,
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                const response = await fetch(url, { ...defaultOptions, ...options });
+                
+                if (response.status === 401) {
+                    this.logout();
+                    return null;
+                }
+
+                return response;
+            }
+
+            async loadDashboard() {
+                try {
+                    const response = await this.makeAuthenticatedRequest('/api/customer/dashboard');
+                    if (!response) return;
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.updateDashboard(data);
+                    } else {
+                        this.showError('Failed to load dashboard');
+                    }
+                } catch (error) {
+                    this.showError('Network error: ' + error.message);
+                }
+            }
+
+            updateDashboard(data) {
+                // Store accounts for use in other pages
+                this.accounts = data.accounts;
+                
+                // Update stats
+                document.getElementById('totalBalance').textContent = `$${data.dashboard.totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('totalAccounts').textContent = data.dashboard.totalAccounts;
+                document.getElementById('recentTransactions').textContent = data.dashboard.recentTransactions;
+
+                // Update accounts list
+                this.renderAccounts(data.accounts);
+                
+                // Update recent activity
+                this.renderRecentActivity(data.recentTransactions);
+            }
+
+            renderAccounts(accounts) {
+                const container = document.getElementById('accountsList');
+                container.innerHTML = accounts.map(account => `
+                    <div class="col-md-6 mb-3">
+                        <div class="card account-card" onclick="portal.viewAccount(${account.accountno})">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title">${account.type.charAt(0).toUpperCase() + account.type.slice(1)} Account</h6>
+                                        <p class="text-muted mb-1">${account.accountno}</p>
+                                        <h4 class="text-primary">$${parseFloat(account.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</h4>
+                                    </div>
+                                    <span class="badge bg-success">${account.status}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-building me-1"></i>${account.branchname}, ${account.city}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderRecentActivity(transactions) {
+                const container = document.getElementById('recentActivity');
+                if (transactions.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No recent transactions</p>';
+                    return;
+                }
+
+                container.innerHTML = transactions.map(transaction => {
+                    const amountClass = transaction.transaction_category.includes('Credit') || transaction.transaction_category.includes('In') 
+                        ? 'transaction-credit' 
+                        : 'transaction-debit';
+                    
+                    const icon = transaction.transaction_category.includes('Credit') || transaction.transaction_category.includes('In')
+                        ? 'fa-arrow-down'
+                        : 'fa-arrow-up';
+
+                    return `
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div>
+                                <h6 class="mb-1">${transaction.transaction_category}</h6>
+                                <small class="text-muted">
+                                    ${new Date(transaction.created_at).toLocaleDateString()}
+                                    ${transaction.reference_customer_name ? `• To: ${transaction.reference_customer_name}` : ''}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <div class="${amountClass}">
+                                    <i class="fas ${icon} me-1"></i>
+                                    $${parseFloat(transaction.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                                </div>
+                                <small class="text-muted">Acc: ${transaction.accountno}</small>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            async viewAccount(accountNo) {
+                this.showPage('accounts');
+                await this.loadAccountDetails(accountNo);
+            }
+
+            async loadAccountDetails(accountNo) {
+                const container = document.getElementById('accountsPageContent');
+                container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+                
+                try {
+                    const response = await this.makeAuthenticatedRequest(`/api/customer/account/${accountNo}`);
+                    if (!response) return;
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        container.innerHTML = `
+                            <button class="btn btn-secondary mb-3" onclick="portal.loadAccountsPage()">
+                                <i class="fas fa-arrow-left me-2"></i>Back to All Accounts
+                            </button>
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>Account Details</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Account Number:</strong> ${data.account.accountno}</p>
+                                            <p><strong>Account Type:</strong> ${data.account.type.charAt(0).toUpperCase() + data.account.type.slice(1)}</p>
+                                            <p><strong>Balance:</strong> <span class="h4 text-primary">$${parseFloat(data.account.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Status:</strong> <span class="badge bg-success">${data.account.status}</span></p>
+                                            <p><strong>Branch:</strong> ${data.account.branchname}, ${data.account.city}</p>
+                                            <p><strong>Opened:</strong> ${new Date(data.account.opened_at).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Transaction History</h5>
+                                </div>
+                                <div class="card-body">
+                                    ${this.renderAccountTransactions(data.transactions)}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to load account details'}</div>`;
+                    }
+                } catch (error) {
+                    container.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            renderAccountTransactions(transactions) {
+                if (transactions.length === 0) {
+                    return '<p class="text-muted text-center">No transactions found</p>';
+                }
+                
+                return `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${transactions.map(t => `
+                                    <tr>
+                                        <td>${new Date(t.created_at).toLocaleString()}</td>
+                                        <td><span class="badge bg-${t.type === 'deposit' ? 'success' : t.type === 'withdrawal' ? 'danger' : 'warning'}">${t.direction || t.type}</span></td>
+                                        <td class="${t.amount_class || ''}">$${parseFloat(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                        <td>${t.reference_account || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            setupNavigation() {
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        
+                        if (link.id === 'logoutBtn') {
+                            this.logout();
+                            return;
+                        }
+
+                        const page = link.getAttribute('data-page');
+                        this.showPage(page);
+
+                        // Update active nav link
+                        document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('active'));
+                        link.classList.add('active');
+                    });
+                });
+            }
+
+            showPage(page) {
+                // Hide all pages
+                document.querySelectorAll('.page-content').forEach(p => p.classList.add('d-none'));
+                
+                // Show selected page
+                const pageElement = document.getElementById(`${page}Page`);
+                if (pageElement) {
+                    pageElement.classList.remove('d-none');
+                }
+
+                // Load page-specific data
+                this.loadPageData(page);
+            }
+
+            loadPageData(page) {
+                switch(page) {
+                    case 'dashboard':
+                        this.loadDashboard();
+                        break;
+                    case 'accounts':
+                        this.loadAccountsPage();
+                        break;
+                    case 'transfer':
+                        this.loadTransferPage();
+                        break;
+                    case 'transactions':
+                        this.loadTransactionsPage();
+                        break;
+                    case 'statement':
+                        this.loadStatementPage();
+                        break;
+                    case 'profile':
+                        this.loadProfilePage();
+                        break;
+                }
+            }
+
+            async loadAccountsPage() {
+                const container = document.getElementById('accountsPageContent');
+                
+                if (this.accounts.length === 0) {
+                    await this.loadDashboard();
+                }
+                
+                if (this.accounts.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">No accounts found</div>';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="row">
+                        ${this.accounts.map(account => `
+                            <div class="col-md-6 mb-3">
+                                <div class="card account-card" onclick="portal.viewAccount(${account.accountno})">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="card-title">${account.type.charAt(0).toUpperCase() + account.type.slice(1)} Account</h6>
+                                                <p class="text-muted mb-1">${account.accountno}</p>
+                                                <h4 class="text-primary">$${parseFloat(account.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</h4>
+                                            </div>
+                                            <span class="badge bg-success">${account.status}</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-building me-1"></i>${account.branchname}, ${account.city}
+                                            </small>
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-exchange-alt me-1"></i>${account.transaction_count || 0} transactions
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            async loadTransferPage() {
+                // Load accounts into dropdowns
+                if (this.accounts.length === 0) {
+                    await this.loadDashboard();
+                }
+                
+                const fromSelect = document.getElementById('fromAccountSelect');
+                const toInput = document.getElementById('toAccountInput');
+                const balancesDiv = document.getElementById('transferAccountBalances');
+                
+                const activeAccounts = this.accounts.filter(acc => acc.status === 'active');
+                
+                fromSelect.innerHTML = '<option value="">Select account...</option>' + 
+                    activeAccounts.map(acc => `<option value="${acc.accountno}">${acc.accountno} - $${parseFloat(acc.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</option>`).join('');
+                
+                // Keep destination as free input to allow cross-customer transfers
+                if (toInput && toInput.value === '') {
+                    toInput.placeholder = 'Enter any valid account number';
+                }
+                
+                balancesDiv.innerHTML = activeAccounts.map(acc => `
+                    <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                        <span>${acc.accountno}</span>
+                        <strong>$${parseFloat(acc.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
+                    </div>
+                `).join('');
+                
+                // Setup form handler if not already set
+                if (!this.transferFormHandler) {
+                    document.getElementById('transferForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        await this.handleTransfer(e.target);
+                    });
+                    this.transferFormHandler = true;
+                }
+            }
+
+            async handleTransfer(form) {
+                const resultDiv = document.getElementById('transferResult');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                data.amount = parseFloat(data.amount);
+                data.toAccount = parseInt(data.toAccount, 10);
+                
+                if (data.fromAccount === data.toAccount) {
+                    resultDiv.innerHTML = '<div class="alert alert-danger">Cannot transfer to the same account</div>';
+                    return;
+                }
+
+                // Client-side check: validate destination account exists and is active
+                try {
+                    const destResp = await fetch(`/api/accounts/${data.toAccount}`);
+                    if (!destResp.ok) {
+                        resultDiv.innerHTML = `<div class="alert alert-danger">Destination account not found or server error (${destResp.status})</div>`;
+                        return;
+                    }
+                    const destData = await destResp.json();
+                    if (!destData || destData.status !== 'active') {
+                        resultDiv.innerHTML = `<div class="alert alert-danger">Destination account is not active</div>`;
+                        return;
+                    }
+                } catch (e) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Failed to verify destination account: ${e.message}</div>`;
+                    return;
+                }
+                
+                resultDiv.innerHTML = '<div class="alert alert-info">Processing transfer...</div>';
+                
+                try {
+                    const response = await this.makeAuthenticatedRequest('/api/customer/transfer', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (!response) return;
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        resultDiv.innerHTML = `
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-check-circle me-2"></i>Transfer Successful</h6>
+                                <p>$${data.amount.toLocaleString('en-US', {minimumFractionDigits: 2})} transferred from account ${data.fromAccount} to ${data.toAccount}</p>
+                            </div>
+                        `;
+                        form.reset();
+                        // Reload dashboard to update balances
+                        setTimeout(() => this.loadDashboard(), 1000);
+                        setTimeout(() => this.loadTransferPage(), 1500);
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-danger">${result.error || 'Transfer failed'}</div>`;
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            async loadTransactionsPage() {
+                if (this.accounts.length === 0) {
+                    await this.loadDashboard();
+                }
+                
+                // Populate account filter
+                const filterAccount = document.getElementById('filterAccount');
+                filterAccount.innerHTML = '<option value="">All Accounts</option>' + 
+                    this.accounts.map(acc => `<option value="${acc.accountno}">${acc.accountno}</option>`).join('');
+                
+                // Setup form handler
+                if (!this.transactionFilterHandler) {
+                    document.getElementById('transactionFilters').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        this.currentPage = 1;
+                        await this.loadTransactions();
+                    });
+                    this.transactionFilterHandler = true;
+                }
+                
+                await this.loadTransactions();
+            }
+
+            async loadTransactions() {
+                const container = document.getElementById('transactionsList');
+                const paginationDiv = document.getElementById('transactionsPagination');
+                
+                if (!container) {
+                    console.error('transactionsList container not found');
+                    return;
+                }
+                
+                container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+                
+                const filterForm = document.getElementById('transactionFilters');
+                if (!filterForm) {
+                    container.innerHTML = '<div class="alert alert-danger">Transaction filters form not found</div>';
+                    return;
+                }
+                
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams();
+                
+                if (formData.get('accountNo')) params.append('accountNo', formData.get('accountNo'));
+                if (formData.get('type')) params.append('type', formData.get('type'));
+                if (formData.get('startDate')) params.append('startDate', formData.get('startDate'));
+                if (formData.get('endDate')) params.append('endDate', formData.get('endDate'));
+                params.append('page', this.currentPage);
+                params.append('limit', 20);
+                
+                try {
+                    console.log('Loading transactions with params:', params.toString());
+                    const response = await this.makeAuthenticatedRequest(`/api/customer/transactions?${params}`);
+                    if (!response) {
+                        container.innerHTML = '<div class="alert alert-danger">Authentication failed. Please login again.</div>';
+                        return;
+                    }
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+                        throw new Error(errorData.error || `Server error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Transaction data received:', data);
+                    
+                    if (!data.success) {
+                        container.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to load transactions'}</div>`;
+                        return;
+                    }
+                    
+                    if (data.success) {
+                        if (data.transactions.length === 0) {
+                            container.innerHTML = '<p class="text-muted text-center py-5">No transactions found</p>';
+                            paginationDiv.innerHTML = '';
+                            return;
+                        }
+                        
+                        container.innerHTML = `
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Account</th>
+                                            <th>Type</th>
+                                            <th>Amount</th>
+                                            <th>Reference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.transactions.map(t => {
+                                            const amountClass = t.transaction_category.includes('Credit') || t.transaction_category.includes('In') 
+                                                ? 'transaction-credit' 
+                                                : 'transaction-debit';
+                                            return `
+                                                <tr>
+                                                    <td>${new Date(t.created_at).toLocaleString()}</td>
+                                                    <td>${t.accountno}</td>
+                                                    <td><span class="badge bg-secondary">${t.transaction_category}</span></td>
+                                                    <td class="${amountClass}">$${parseFloat(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                                    <td>${t.reference_customer_name || t.reference_account_no || '-'}</td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        
+                        // Pagination
+                        if (data.pagination.totalPages > 1) {
+                            paginationDiv.innerHTML = `
+                                <nav>
+                                    <ul class="pagination justify-content-center">
+                                        <li class="page-item ${!data.pagination.hasPrev ? 'disabled' : ''}">
+                                            <a class="page-link" href="#" onclick="${data.pagination.hasPrev ? `portal.changeTransactionPage(${data.pagination.currentPage - 1})` : 'return false;'}; return false;">Previous</a>
+                                        </li>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">Page ${data.pagination.currentPage} of ${data.pagination.totalPages}</span>
+                                        </li>
+                                        <li class="page-item ${!data.pagination.hasNext ? 'disabled' : ''}">
+                                            <a class="page-link" href="#" onclick="${data.pagination.hasNext ? `portal.changeTransactionPage(${data.pagination.currentPage + 1})` : 'return false;'}; return false;">Next</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            `;
+                        } else {
+                            paginationDiv.innerHTML = '';
+                        }
+                    } else {
+                        container.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to load transactions'}</div>`;
+                    }
+                } catch (error) {
+                    container.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            changeTransactionPage(page) {
+                if (page < 1) {
+                    return;
+                }
+                this.currentPage = page;
+                this.loadTransactions();
+            }
+
+            async loadStatementPage() {
+                if (this.accounts.length === 0) {
+                    await this.loadDashboard();
+                }
+                
+                const statementAccount = document.getElementById('statementAccount');
+                statementAccount.innerHTML = '<option value="">All Accounts</option>' + 
+                    this.accounts.map(acc => `<option value="${acc.accountno}">${acc.accountno}</option>`).join('');
+                
+                if (!this.statementFormHandler) {
+                    document.getElementById('statementForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        await this.generateStatement(e.target);
+                    });
+                    this.statementFormHandler = true;
+                }
+            }
+
+            async generateStatement(form) {
+                const container = document.getElementById('statementContent');
+                container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+                
+                const formData = new FormData(form);
+                const params = new URLSearchParams();
+                
+                if (formData.get('accountNo')) params.append('accountNo', formData.get('accountNo'));
+                if (formData.get('startDate')) params.append('startDate', formData.get('startDate'));
+                if (formData.get('endDate')) params.append('endDate', formData.get('endDate'));
+                
+                try {
+                    const response = await this.makeAuthenticatedRequest(`/api/customer/statement?${params}`);
+                    if (!response) return;
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const stmt = data.statement;
+                        container.innerHTML = `
+                            <div class="mb-4">
+                                <h5>Account Statement</h5>
+                                <p class="text-muted mb-1"><strong>Account:</strong> ${stmt.accountNo}</p>
+                                <p class="text-muted mb-1"><strong>Period:</strong> ${stmt.period.startDate} to ${stmt.period.endDate}</p>
+                                <p class="text-muted"><strong>Generated:</strong> ${new Date(stmt.generatedAt).toLocaleString()}</p>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Type</th>
+                                            <th>Debit</th>
+                                            <th>Credit</th>
+                                            <th>Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${stmt.transactions.map(t => `
+                                            <tr>
+                                                <td>${new Date(t.created_at).toLocaleDateString()}</td>
+                                                <td>${t.type}</td>
+                                                <td>${parseFloat(t.debit) > 0 ? '$' + parseFloat(t.debit).toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
+                                                <td>${parseFloat(t.credit) > 0 ? '$' + parseFloat(t.credit).toLocaleString('en-US', {minimumFractionDigits: 2}) : '-'}</td>
+                                                <td><strong>$${parseFloat(t.runningBalance).toLocaleString('en-US', {minimumFractionDigits: 2})}</strong></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to generate statement'}</div>`;
+                    }
+                } catch (error) {
+                    container.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            async loadProfilePage() {
+                try {
+                    const response = await this.makeAuthenticatedRequest('/api/customer/dashboard');
+                    if (!response) return;
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Populate profile form
+                        document.getElementById('profileFullname').value = data.customer.fullname || '';
+                        document.getElementById('profileEmail').value = data.customer.email || '';
+                        document.getElementById('profileCnic').value = data.customer.cnic || '';
+                        document.getElementById('profilePhone').value = data.customer.phone || '';
+                        document.getElementById('profileAddress').value = data.customer.address || '';
+                        
+                        document.getElementById('profileMemberSince').textContent = 
+                            new Date(data.customer.created_at).toLocaleDateString();
+                        document.getElementById('profileTotalAccounts').textContent = data.dashboard.totalAccounts;
+                        document.getElementById('profileTotalBalance').textContent = 
+                            `$${data.dashboard.totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                        
+                        // Setup form handler
+                        if (!this.profileFormHandler) {
+                            document.getElementById('profileForm').addEventListener('submit', async (e) => {
+                                e.preventDefault();
+                                await this.updateProfile(e.target);
+                            });
+                            this.profileFormHandler = true;
+                        }
+                    }
+                } catch (error) {
+                    this.showError('Failed to load profile: ' + error.message);
+                }
+            }
+
+            async updateProfile(form) {
+                const resultDiv = document.getElementById('profileResult');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                
+                resultDiv.innerHTML = '<div class="alert alert-info">Updating profile...</div>';
+                
+                try {
+                    const response = await this.makeAuthenticatedRequest('/api/customer/profile', {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (!response) return;
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        resultDiv.innerHTML = '<div class="alert alert-success">Profile updated successfully</div>';
+                        // Update stored customer data
+                        this.customer.phone = data.phone;
+                        this.customer.address = data.address;
+                        localStorage.setItem('customerData', JSON.stringify(this.customer));
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-danger">${result.error || 'Failed to update profile'}</div>`;
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            async logout() {
+                try {
+                    await this.makeAuthenticatedRequest('/api/customer/logout', {
+                        method: 'POST'
+                    });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                } finally {
+                    localStorage.removeItem('customerToken');
+                    localStorage.removeItem('customerData');
+                    window.location.href = 'customer_login.html';
+                }
+            }
+
+            setupLogout() {
+                document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.logout();
+                });
+            }
+
+            showError(message, type = 'error') {
+                console.error('Portal Error:', message);
+                // Create a toast notification
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show position-fixed`;
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                toast.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(toast);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 5000);
+            }
+        }
+
+        // Initialize the customer portal when page loads
+        const portal = new CustomerPortal();
+    </script>
+</body>
+</html>

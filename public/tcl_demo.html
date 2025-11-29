@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCL Demo - CBS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-purple text-white" style="background-color: #6f42c1;">
+                        <h4 class="mb-0"><i class="fas fa-database me-2"></i>TCL Demonstrations</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="lead">Transaction Control Language (TCL) demonstrations for Core Banking System</p>
+                        
+                        <div class="row">
+                            <!-- SAVEPOINT Demo -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-code-branch me-2"></i>SAVEPOINT Demo</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Demonstrates partial rollback using SAVEPOINT and ROLLBACK TO SAVEPOINT</p>
+                                        <form id="savepointForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Account Number</label>
+                                                <input type="number" name="accountno" class="form-control" placeholder="e.g., 1" required>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <label class="form-label">First Withdrawal</label>
+                                                    <input type="number" name="amount1" class="form-control" value="100" step="0.01" required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label">Second Withdrawal</label>
+                                                    <input type="number" name="amount2" class="form-control" value="20000" step="0.01" required>
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn btn-purple mt-3 w-100" style="background-color: #6f42c1; color: white;">
+                                                Run SAVEPOINT Demo
+                                            </button>
+                                        </form>
+                                        <div id="savepointResult" class="mt-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Manual TCL Examples -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>SQL TCL Examples</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Run these SQL commands in MySQL to see TCL in action:</p>
+                                        <div class="bg-dark text-light p-3 rounded mb-3">
+                                            <small>
+                                                <code>
+-- COMMIT Example<br>
+START TRANSACTION;<br>
+UPDATE Account SET balance = balance + 1000 WHERE accountno = 1;<br>
+COMMIT;<br><br>
+
+-- ROLLBACK Example<br>
+START TRANSACTION;<br>
+UPDATE Account SET balance = balance - 50000 WHERE accountno = 1;<br>
+ROLLBACK;<br><br>
+
+-- SAVEPOINT Example<br>
+START TRANSACTION;<br>
+UPDATE Account SET balance = balance - 100 WHERE accountno = 1;<br>
+SAVEPOINT sp1;<br>
+UPDATE Account SET balance = balance - 200 WHERE accountno = 1;<br>
+ROLLBACK TO SAVEPOINT sp1;<br>
+COMMIT;
+                                                </code>
+                                            </small>
+                                        </div>
+                                        <a href="/view_transactions.html" class="btn btn-outline-dark w-100">
+                                            View Transaction Log
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TCL Explanation -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>TCL Concepts</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <h6>COMMIT</h6>
+                                                <p class="small">Makes all changes in the current transaction permanent</p>
+                                                <ul class="small">
+                                                    <li>Used after successful operations</li>
+                                                    <li>Cannot be undone</li>
+                                                    <li>Example: Successful deposit</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <h6>ROLLBACK</h6>
+                                                <p class="small">Undoes all changes in the current transaction</p>
+                                                <ul class="small">
+                                                    <li>Used when errors occur</li>
+                                                    <li>Restores database consistency</li>
+                                                    <li>Example: Insufficient funds</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <h6>SAVEPOINT</h6>
+                                                <p class="small">Allows partial rollback within a transaction</p>
+                                                <ul class="small">
+                                                    <li>Creates restore points</li>
+                                                    <li>Enables complex transaction logic</li>
+                                                    <li>Example: Multi-step operations</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SAVEPOINT Demo
+        document.getElementById('savepointForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.amount1 = parseFloat(data.amount1);
+            data.amount2 = parseFloat(data.amount2);
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Running Demo...';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/transactions/demo-savepoint', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    let actionsHtml = '<h6>Demo Steps:</h6><ol class="list-group list-group-numbered">';
+                    result.actions.forEach(action => {
+                        actionsHtml += `<li class="list-group-item">${action}</li>`;
+                    });
+                    actionsHtml += '</ol>';
+                    
+                    document.getElementById('savepointResult').innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-2"></i>SAVEPOINT Demo Completed</h6>
+                            ${actionsHtml}
+                            <div class="mt-2">
+                                <strong>Initial Balance:</strong> $${result.initialBalance.toFixed(2)}<br>
+                                <strong>Final Balance:</strong> $${result.finalBalance.toFixed(2)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('savepointResult').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Demo Failed</h6>
+                            <p class="mb-0">${result.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('savepointResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Network Error</h6>
+                        <p class="mb-0">Unable to connect to server. Please try again.</p>
+                    </div>
+                `;
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Accounts - CBS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-wallet me-2"></i>All Accounts</h2>
+            <div>
+                <a href="/index.html" class="btn btn-secondary me-2">
+                    <i class="fas fa-home me-1"></i> Dashboard
+                </a>
+                <a href="/open_account.html" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i> Open Account
+                </a>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Account No</th>
+                                <th>Customer</th>
+                                <th>Branch</th>
+                                <th>Type</th>
+                                <th>Balance</th>
+                                <th>Status</th>
+                                <th>Opened</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountsTable">
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
+                const accounts = await response.json();
+                
+                const tableBody = document.getElementById('accountsTable');
+                
+                if (accounts.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">
+                                <i class="fas fa-wallet fa-2x mb-3 d-block"></i>
+                                No accounts found. <a href="/open_account.html">Open the first account</a>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tableBody.innerHTML = accounts.map(account => `
+                    <tr>
+                        <td><strong>${account.accountno}</strong></td>
+                        <td>
+                            <div>${account.customer_name}</div>
+                            <small class="text-muted">${account.customer_email}</small>
+                        </td>
+                        <td>${account.branchname}, ${account.city}</td>
+                        <td>
+                            <span class="badge ${account.type === 'saving' ? 'bg-info' : 'bg-primary'}">
+                                ${account.type.charAt(0).toUpperCase() + account.type.slice(1)}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>$${parseFloat(account.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
+                        </td>
+                        <td>
+                            <span class="badge ${
+                                account.status === 'active' ? 'bg-success' : 
+                                account.status === 'suspended' ? 'bg-warning' : 'bg-danger'
+                            }">
+                                ${account.status.charAt(0).toUpperCase() + account.status.slice(1)}
+                            </span>
+                        </td>
+                        <td>${new Date(account.opened_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                document.getElementById('accountsTable').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading accounts: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Load accounts when page loads
+        document.addEventListener('DOMContentLoaded', loadAccounts);
+    </script>
+</body>
+</html>

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete TCL Implementation - CBS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .tcl-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        .tcl-card.commit { border-left-color: #28a745; }
+        .tcl-card.rollback { border-left-color: #dc3545; }
+        .tcl-card.savepoint { border-left-color: #ffc107; }
+        .tcl-card.nested { border-left-color: #6f42c1; }
+        .tcl-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .console-output { background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 15px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header text-white bg-dark">
+                        <h4 class="mb-0"><i class="fas fa-database me-2"></i>Complete TCL Implementation</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- TCL Test Suite -->
+                        <div class="card tcl-card commit mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-vial me-2"></i>
+                                    TCL Test Suite
+                                    <span class="badge bg-info ms-2">Validation</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">Run comprehensive TCL functionality tests</p>
+                                <button id="runTests" class="btn btn-info">
+                                    <i class="fas fa-play me-1"></i> Run TCL Test Suite
+                                </button>
+                                <div id="testResults" class="mt-3"></div>
+                            </div>
+                        </div>
+
+                        <!-- Basic Transaction Demo -->
+                        <div class="card tcl-card commit mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-exchange-alt me-2"></i>
+                                    Basic Transaction (COMMIT/ROLLBACK)
+                                    <span class="badge bg-success ms-2">COMMIT</span>
+                                    <span class="badge bg-danger ms-1">ROLLBACK</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="basicTransactionForm">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Account Number</label>
+                                            <input type="number" name="accountno" class="form-control" placeholder="1" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Amount</label>
+                                            <input type="number" name="amount" class="form-control" placeholder="100.00" step="0.01" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Type</label>
+                                            <select name="type" class="form-control" required>
+                                                <option value="deposit">Deposit</option>
+                                                <option value="withdrawal">Withdrawal</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="submit" class="btn btn-success w-100">Execute Transaction</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div id="basicTransactionResult" class="mt-3"></div>
+                            </div>
+                        </div>
+
+                        <!-- Atomic Transfer Demo -->
+                        <div class="card tcl-card commit mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-atom me-2"></i>
+                                    Atomic Transfer
+                                    <span class="badge bg-success ms-2">COMMIT</span>
+                                    <span class="badge bg-danger ms-1">ROLLBACK</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="atomicTransferForm">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <label class="form-label">From Account</label>
+                                            <input type="number" name="fromAccount" class="form-control" placeholder="1" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">To Account</label>
+                                            <input type="number" name="toAccount" class="form-control" placeholder="2" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Amount</label>
+                                            <input type="number" name="amount" class="form-control" placeholder="1000.00" step="0.01" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="submit" class="btn btn-primary w-100">Execute Atomic Transfer</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div id="atomicTransferResult" class="mt-3"></div>
+                            </div>
+                        </div>
+
+                        <!-- SAVEPOINT Demo -->
+                        <div class="card tcl-card savepoint mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-code-branch me-2"></i>
+                                    SAVEPOINT Demonstration
+                                    <span class="badge bg-warning ms-2 text-dark">SAVEPOINT</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="savepointForm">
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Account Number</label>
+                                            <input type="number" name="accountno" class="form-control" placeholder="1" required>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Operations (JSON)</label>
+                                            <textarea name="operations" class="form-control" rows="3" placeholder='[{"type": "credit", "amount": 500}, {"type": "debit", "amount": 200, "constraint": {"minBalance": 0}}]' required></textarea>
+                                            <small class="form-text text-muted">Enter array of operations with type ("credit"/"debit"), amount, and optional constraints</small>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-warning">Execute SAVEPOINT Demo</button>
+                                </form>
+                                <div id="savepointResult" class="mt-3"></div>
+                            </div>
+                        </div>
+
+                        <!-- Batch Processing Demo -->
+                        <div class="card tcl-card nested mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-tasks me-2"></i>
+                                    Batch Processing
+                                    <span class="badge bg-purple ms-2" style="background-color: #6f42c1;">BATCH</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="batchForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Batch Operations (JSON)</label>
+                                        <textarea name="operations" class="form-control" rows="4" placeholder='[{"accountno": 1, "amount": 500}, {"accountno": 2, "amount": -200}, {"accountno": 3, "amount": 1000}]' required></textarea>
+                                        <small class="form-text text-muted">Enter array of {accountno, amount} objects. Positive for deposit, negative for withdrawal.</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-purple" style="background-color: #6f42c1; color: white;">Execute Batch Processing</button>
+                                </form>
+                                <div id="batchResult" class="mt-3"></div>
+                            </div>
+                        </div>
+
+                        <!-- Console Output -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>TCL Console</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="tclConsole" class="console-output">
+                                    <div>> TCL Console Ready</div>
+                                    <div>> System: Core Banking System TCL Implementation</div>
+                                    <div>> Status: Waiting for transactions...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Console logging function
+        function logToConsole(message, type = 'info') {
+            const console = document.getElementById('tclConsole');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : '#339af0';
+            console.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            console.scrollTop = console.scrollHeight;
+        }
+
+        // Test Suite
+        document.getElementById('runTests').addEventListener('click', async () => {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<div class="alert alert-info">Running TCL test suite...</div>';
+            logToConsole('Starting TCL test suite...');
+
+            try {
+                const response = await fetch('/api/tcl/test-suite');
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
+                const result = await response.json();
+
+                if (!result.success || !result.testResults || !result.summary) {
+                    throw new Error('Invalid test suite response format');
+                }
+
+                let resultsHtml = `
+                    <div class="alert alert-${result.summary.failed === 0 ? 'success' : 'warning'}">
+                        <h6>Test Suite Results: ${result.summary.passed}/${result.summary.total} Passed</h6>
+                        ${result.summary.failed > 0 ? `<p class="mb-2"><strong>Failed:</strong> ${result.summary.failed} test(s)</p>` : ''}
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Test</th>
+                                    <th>Result</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                result.testResults.forEach(test => {
+                    const badgeClass = test.result === 'PASSED' ? 'bg-success' : 'bg-danger';
+                    resultsHtml += `
+                        <tr>
+                            <td>${test.test}</td>
+                            <td><span class="badge ${badgeClass}">${test.result}</span></td>
+                            <td>${test.description}</td>
+                        </tr>
+                    `;
+                });
+
+                resultsHtml += '</tbody></table></div>';
+                resultsDiv.innerHTML = resultsHtml;
+
+                logToConsole(`TCL test suite completed: ${result.summary.passed}/${result.summary.total} tests passed`, 
+                           result.summary.failed === 0 ? 'success' : 'error');
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Test suite failed: ${error.message}</div>`;
+                logToConsole(`Test suite error: ${error.message}`, 'error');
+            }
+        });
+
+        // Basic Transaction
+        document.getElementById('basicTransactionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.amount = parseFloat(data.amount);
+
+            logToConsole(`Starting ${data.type} transaction: Account ${data.accountno}, Amount ${data.amount}`);
+
+            try {
+                const response = await fetch('/api/tcl/basic-transaction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+                const result = await response.json();
+                
+                const alertClass = result.success ? 'alert-success' : 'alert-danger';
+                const icon = result.success ? 'fa-check-circle' : 'fa-times-circle';
+                
+                document.getElementById('basicTransactionResult').innerHTML = `
+                    <div class="alert ${alertClass}">
+                        <h6><i class="fas ${icon} me-2"></i>${result.message}</h6>
+                        <p><strong>Transaction:</strong> ${result.transaction}</p>
+                        ${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
+                    </div>
+                `;
+
+                logToConsole(`${data.type} transaction ${result.transaction.toLowerCase()}: ${result.message}`, 
+                           result.success ? 'success' : 'error');
+
+            } catch (error) {
+                document.getElementById('basicTransactionResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Network Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                logToConsole(`Network error: ${error.message}`, 'error');
+            }
+        });
+
+        // Atomic Transfer
+        document.getElementById('atomicTransferForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.amount = parseFloat(data.amount);
+
+            logToConsole(`Starting atomic transfer: ${data.amount} from ${data.fromAccount} to ${data.toAccount}`);
+
+            try {
+                const response = await fetch('/api/tcl/atomic-transfer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+                const result = await response.json();
+                
+                const alertClass = result.success ? 'alert-success' : 'alert-danger';
+                const icon = result.success ? 'fa-check-circle' : 'fa-times-circle';
+                
+                document.getElementById('atomicTransferResult').innerHTML = `
+                    <div class="alert ${alertClass}">
+                        <h6><i class="fas ${icon} me-2"></i>${result.message}</h6>
+                        <p><strong>Transaction:</strong> ${result.transaction}</p>
+                        <p><strong>From:</strong> ${result.details.fromAccount}</p>
+                        <p><strong>To:</strong> ${result.details.toAccount}</p>
+                        <p><strong>Amount:</strong> $${result.details.amount}</p>
+                        ${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
+                    </div>
+                `;
+
+                logToConsole(`Atomic transfer ${result.transaction.toLowerCase()}: ${result.message}`, 
+                           result.success ? 'success' : 'error');
+
+            } catch (error) {
+                document.getElementById('atomicTransferResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Network Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                logToConsole(`Network error: ${error.message}`, 'error');
+            }
+        });
+
+        // SAVEPOINT Demo
+        document.getElementById('savepointForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                data.operations = JSON.parse(data.operations);
+            } catch (error) {
+                document.getElementById('savepointResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Invalid JSON</h6>
+                        <p>Please enter valid JSON array</p>
+                    </div>
+                `;
+                return;
+            }
+
+            logToConsole(`Starting SAVEPOINT demo: ${data.operations.length} operations on account ${data.accountno}`);
+
+            try {
+                const response = await fetch('/api/tcl/savepoint-demo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+                const result = await response.json();
+                
+                if (result.success) {
+                    let operationsHtml = '<h6>Operation Details:</h6><table class="table table-sm"><thead><tr><th>Step</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Status</th><th>Savepoint</th></tr></thead><tbody>';
+                    
+                    result.results.operations.forEach(op => {
+                        const rowClass = op.status === 'rolled back' ? 'table-warning' : 'table-success';
+                        operationsHtml += `
+                            <tr class="${rowClass}">
+                                <td>${op.step}</td>
+                                <td>${op.type}</td>
+                                <td>$${op.amount}</td>
+                                <td>$${op.balanceAfter.toFixed(2)}</td>
+                                <td>
+                                    ${op.status === 'rolled back' 
+                                        ? `<span class="badge bg-warning">Rolled Back</span><br><small>${op.reason}</small>`
+                                        : '<span class="badge bg-success">Success</span>'
+                                    }
+                                </td>
+                                <td><code>${op.savepoint}</code></td>
+                            </tr>
+                        `;
+                    });
+                    
+                    operationsHtml += '</tbody></table>';
+                    
+                    document.getElementById('savepointResult').innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-2"></i>SAVEPOINT Demo Completed</h6>
+                            <p><strong>Initial Balance:</strong> $${result.results.initialBalance.toFixed(2)}</p>
+                            <p><strong>Final Balance:</strong> $${result.results.finalBalance.toFixed(2)}</p>
+                            <p><strong>Savepoints Created:</strong> ${result.results.savepointsCreated}</p>
+                            <p><strong>Rollbacks Performed:</strong> ${result.results.rollbacksPerformed}</p>
+                            ${operationsHtml}
+                        </div>
+                    `;
+
+                    logToConsole(`SAVEPOINT demo completed: ${result.results.savepointsCreated} savepoints, ${result.results.rollbacksPerformed} rollbacks`, 'success');
+
+                } else {
+                    document.getElementById('savepointResult').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-times-circle me-2"></i>SAVEPOINT Demo Failed</h6>
+                            <p>${result.error}</p>
+                        </div>
+                    `;
+                    logToConsole(`SAVEPOINT demo failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                document.getElementById('savepointResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Network Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                logToConsole(`Network error: ${error.message}`, 'error');
+            }
+        });
+
+        // Batch Processing
+        document.getElementById('batchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                data.operations = JSON.parse(data.operations);
+            } catch (error) {
+                document.getElementById('batchResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Invalid JSON</h6>
+                        <p>Please enter valid JSON array</p>
+                    </div>
+                `;
+                return;
+            }
+
+            logToConsole(`Starting batch processing: ${data.operations.length} operations`);
+
+            try {
+                const response = await fetch('/api/tcl/batch-processing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+                const result = await response.json();
+                
+                if (result.success) {
+                    let detailsHtml = '<h6>Batch Results:</h6><table class="table table-sm"><thead><tr><th>Account</th><th>Operation</th><th>Amount</th><th>Status</th><th>Details</th></tr></thead><tbody>';
+                    
+                    result.batchResults.details.forEach(detail => {
+                        const rowClass = detail.status === 'success' ? 'table-success' : 'table-danger';
+                        detailsHtml += `
+                            <tr class="${rowClass}">
+                                <td>${detail.accountno}</td>
+                                <td>${detail.operation}</td>
+                                <td>$${Math.abs(detail.amount)}</td>
+                                <td><span class="badge ${detail.status === 'success' ? 'bg-success' : 'bg-danger'}">${detail.status}</span></td>
+                                <td>${detail.status === 'success' ? `Balance: $${detail.balance}` : detail.error}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    detailsHtml += '</tbody></table>';
+                    
+                    document.getElementById('batchResult').innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-2"></i>Batch Processing Completed</h6>
+                            <p><strong>Processed:</strong> ${result.batchResults.processed} accounts</p>
+                            <p><strong>Successful:</strong> ${result.batchResults.successful}</p>
+                            <p><strong>Failed:</strong> ${result.batchResults.failed}</p>
+                            ${detailsHtml}
+                        </div>
+                    `;
+
+                    logToConsole(`Batch processing completed: ${result.batchResults.successful} successful, ${result.batchResults.failed} failed`, 'success');
+
+                } else {
+                    document.getElementById('batchResult').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-times-circle me-2"></i>Batch Processing Failed</h6>
+                            <p>${result.error}</p>
+                        </div>
+                    `;
+                    logToConsole(`Batch processing failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                document.getElementById('batchResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Network Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                logToConsole(`Network error: ${error.message}`, 'error');
+            }
+        });
+
+        // Initialize console
+        logToConsole('TCL Implementation loaded successfully');
+    </script>
+</body>
+</html>
