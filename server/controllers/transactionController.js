@@ -1,7 +1,24 @@
 const pool = require('../db');
 
+// Extract admin userid from Authorization token if present; fallback to body.userid or 1
+function getEffectiveUserId(req) {
+  try {
+    const token = req.headers?.authorization || req.query?.token;
+    if (token && typeof token === 'string') {
+      const parts = token.split('_');
+      if (parts.length >= 2 && parts[0] === 'admin') {
+        const id = parseInt(parts[1], 10);
+        if (!isNaN(id) && id > 0) return id;
+      }
+    }
+  } catch (_) { /* ignore */ }
+  const bodyId = req.body && req.body.userid ? parseInt(req.body.userid, 10) : null;
+  return !isNaN(bodyId) && bodyId > 0 ? bodyId : 1;
+}
+
 exports.deposit = async (req, res) => {
-  const { accountno, amount, userid = 1 } = req.body;
+  const { accountno, amount } = req.body;
+  const userid = getEffectiveUserId(req);
   
   if (!accountno || !amount || amount <= 0) {
     return res.status(400).json({ error: 'Valid account number and positive amount are required' });
@@ -64,7 +81,8 @@ exports.deposit = async (req, res) => {
 };
 
 exports.withdraw = async (req, res) => {
-  const { accountno, amount, userid = 1 } = req.body;
+  const { accountno, amount } = req.body;
+  const userid = getEffectiveUserId(req);
   
   if (!accountno || !amount || amount <= 0) {
     return res.status(400).json({ error: 'Valid account number and positive amount are required' });
@@ -127,7 +145,8 @@ exports.withdraw = async (req, res) => {
 };
 
 exports.transfer = async (req, res) => {
-  const { fromaccount, toaccount, amount, userid = 1 } = req.body;
+  const { fromaccount, toaccount, amount } = req.body;
+  const userid = getEffectiveUserId(req);
   
   if (!fromaccount || !toaccount || !amount || amount <= 0) {
     return res.status(400).json({ error: 'Valid account numbers and positive amount are required' });
@@ -218,7 +237,8 @@ exports.transfer = async (req, res) => {
 
 // SAVEPOINT Demo for TCL demonstration
 exports.demoSavepoint = async (req, res) => {
-  const { accountno, amount1 = 100, amount2 = 200, userid = 1 } = req.body;
+  const { accountno, amount1 = 100, amount2 = 200 } = req.body;
+  const userid = getEffectiveUserId(req);
   
   if (!accountno) {
     return res.status(400).json({ error: 'Account number is required' });
@@ -239,41 +259,53 @@ exports.demoSavepoint = async (req, res) => {
     const initialBalance = parseFloat(initialRows[0].balance);
     actions.push(`Initial balance: ${initialBalance.toFixed(2)}`);
 
+    // Guard: ensure sufficient funds for first withdrawal
+    if (initialBalance < parseFloat(amount1)) {
+      actions.push(`Insufficient funds for first withdrawal (${amount1}). Demo aborted.`);
+      await conn.rollback();
+      return res.status(400).json({ success: false, actions, message: 'Not enough balance for first withdrawal' });
+    }
+
     // First withdrawal
     await conn.execute('UPDATE Account SET balance = balance - ? WHERE accountno = ?', [amount1, accountno]);
-    // Note: SAVEPOINT must use query() not execute() as it's not supported in prepared statements
-    await conn.query('SAVEPOINT after_first_withdrawal');
-    
+    await conn.query('SAVEPOINT after_first_withdrawal'); // SAVEPOINT requires query()
+
     const [afterFirst] = await conn.execute('SELECT balance FROM Account WHERE accountno = ?', [accountno]);
     const balanceAfterFirst = parseFloat(afterFirst[0].balance);
     actions.push(`After first withdrawal (${amount1}): ${balanceAfterFirst.toFixed(2)}`);
 
-    // Second withdrawal
-    await conn.execute('UPDATE Account SET balance = balance - ? WHERE accountno = ?', [amount2, accountno]);
-    
-    const [afterSecond] = await conn.execute('SELECT balance FROM Account WHERE accountno = ?', [accountno]);
-    const balanceAfterSecond = parseFloat(afterSecond[0].balance);
-    actions.push(`After second withdrawal (${amount2}): ${balanceAfterSecond.toFixed(2)}`);
-
-    // Check if we need to rollback the second withdrawal
-    if (balanceAfterSecond < 0) {
-      // Note: ROLLBACK TO SAVEPOINT must use query() not execute()
-      await conn.query('ROLLBACK TO SAVEPOINT after_first_withdrawal');
-      actions.push('Balance went negative - rolled back to SAVEPOINT (second withdrawal undone)');
-      
+    // Decide whether to attempt second withdrawal
+    if (balanceAfterFirst < parseFloat(amount2)) {
+      actions.push(`Second withdrawal (${amount2}) skipped due to insufficient funds.`);
       // Record only the first withdrawal
       await conn.execute(
         `INSERT INTO TransactionLog (accountno, type, amount, performed_by) VALUES (?, ?, ?, ?)`,
         [accountno, 'withdrawal', amount1, userid]
       );
     } else {
-      actions.push('Both withdrawals successful - no rollback needed');
-      
-      // Record complete transaction
-      await conn.execute(
-        `INSERT INTO TransactionLog (accountno, type, amount, performed_by) VALUES (?, ?, ?, ?)`,
-        [accountno, 'withdrawal', parseFloat(amount1) + parseFloat(amount2), userid]
-      );
+      // Attempt second withdrawal
+      await conn.execute('UPDATE Account SET balance = balance - ? WHERE accountno = ?', [amount2, accountno]);
+      const [afterSecond] = await conn.execute('SELECT balance FROM Account WHERE accountno = ?', [accountno]);
+      const balanceAfterSecond = parseFloat(afterSecond[0].balance);
+      actions.push(`After second withdrawal (${amount2}): ${balanceAfterSecond.toFixed(2)}`);
+
+      if (balanceAfterSecond < 0) {
+        // Roll back second if it caused negative balance
+        await conn.query('ROLLBACK TO SAVEPOINT after_first_withdrawal');
+        actions.push('Second withdrawal caused negative balance - rolled back to SAVEPOINT.');
+        // Record only first withdrawal
+        await conn.execute(
+          `INSERT INTO TransactionLog (accountno, type, amount, performed_by) VALUES (?, ?, ?, ?)`,
+          [accountno, 'withdrawal', amount1, userid]
+        );
+      } else {
+        actions.push('Both withdrawals successful - no rollback needed');
+        // Record combined withdrawal as a single logical transaction
+        await conn.execute(
+          `INSERT INTO TransactionLog (accountno, type, amount, performed_by) VALUES (?, ?, ?, ?)`,
+          [accountno, 'withdrawal', parseFloat(amount1) + parseFloat(amount2), userid]
+        );
+      }
     }
 
     // Get final balance

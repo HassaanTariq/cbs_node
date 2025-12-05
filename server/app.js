@@ -9,6 +9,8 @@ const accounts = require('./routes/accounts');
 const transactions = require('./routes/transactions');
 const tcl = require('./routes/tcl');                    
 const customerPortal = require('./routes/customerPortal');
+const admin = require('./routes/admin');
+const reports = require('./routes/reports');
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.use('/api/accounts', accounts);
 app.use('/api/transactions', transactions);
 app.use('/api/tcl', tcl);                              
 app.use('/api/customer', customerPortal); 
+app.use('/api/admin', admin);
+app.use('/api/reports', reports);
 
 // Serve static frontend
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -58,7 +62,7 @@ app.listen(PORT, () => {
   console.log(` CBS Server running on http://localhost:${PORT}`);
   console.log(` Health check: http://localhost:${PORT}/health`);
    console.log(` Database: cbs_db`);
-  console.log(` Frontend: http://localhost:${PORT}`);
+  console.log(` Admin: http://localhost:${PORT}`);
   console.log(` Customer Portal: http://localhost:${PORT}/customer_login.html`);
   console.log(` TCL Demos: http://localhost:${PORT}/tcl_complete.html`);
 });

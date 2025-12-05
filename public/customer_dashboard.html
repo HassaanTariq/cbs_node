@@ -719,20 +719,30 @@
                 
                 const activeAccounts = this.accounts.filter(acc => acc.status === 'active');
                 
+                // Show account number and type for clarity
                 fromSelect.innerHTML = '<option value="">Select account...</option>' + 
-                    activeAccounts.map(acc => `<option value="${acc.accountno}">${acc.accountno} - $${parseFloat(acc.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</option>`).join('');
+                    activeAccounts.map(acc => {
+                        const typeLabel = acc.type ? acc.type.charAt(0).toUpperCase() + acc.type.slice(1) : 'Account';
+                        const bal = parseFloat(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                        return `<option value="${acc.accountno}">${acc.accountno} • ${typeLabel} • $${bal}</option>`;
+                    }).join('');
                 
                 // Keep destination as free input to allow cross-customer transfers
                 if (toInput && toInput.value === '') {
                     toInput.placeholder = 'Enter any valid account number';
                 }
                 
-                balancesDiv.innerHTML = activeAccounts.map(acc => `
-                    <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                        <span>${acc.accountno}</span>
-                        <strong>$${parseFloat(acc.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
-                    </div>
-                `).join('');
+                // Also list balances with account type
+                balancesDiv.innerHTML = activeAccounts.map(acc => {
+                    const typeLabel = acc.type ? acc.type.charAt(0).toUpperCase() + acc.type.slice(1) : 'Account';
+                    const bal = parseFloat(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                    return `
+                        <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                            <span>${acc.accountno} • ${typeLabel}</span>
+                            <strong>$${bal}</strong>
+                        </div>
+                    `;
+                }).join('');
                 
                 // Setup form handler if not already set
                 if (!this.transferFormHandler) {

@@ -28,6 +28,40 @@
                         <h4 class="mb-0"><i class="fas fa-database me-2"></i>Complete TCL Implementation</h4>
                     </div>
                     <div class="card-body">
+                            <div class="alert alert-warning">
+                                This demo fires parallel requests to simulate two users updating the same account. The backend uses `SELECT ... FOR UPDATE` and explicit transactions to serialize updates and prevent race-condition errors.
+                            </div>
+                            <form id="concurrencyForm">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Target Account</label>
+                                        <input type="number" class="form-control" name="accountno" placeholder="e.g., 1001" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">User A Amount ($)</label>
+                                        <input type="number" step="0.01" class="form-control" name="amountA" placeholder="e.g., 50" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">User B Amount ($)</label>
+                                        <input type="number" step="0.01" class="form-control" name="amountB" placeholder="e.g., 75" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Operation</label>
+                                        <select class="form-select" name="op" required>
+                                            <option value="deposit">Deposit</option>
+                                            <option value="withdraw">Withdraw</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-play me-2"></i>Run Concurrent Ops
+                                    </button>
+                                    <small class="text-muted ms-2">Runs User A and User B simultaneously</small>
+                                </div>
+                            </form>
+                            <div id="concurrencyResult" class="mt-3"></div>
+                            <div id="concurrencyAudit" class="mt-2 text-muted"></div>
                         <!-- TCL Test Suite -->
                         <div class="card tcl-card commit mb-4">
                             <div class="card-header">
@@ -57,6 +91,9 @@
                                 </h5>
                             </div>
                             <div class="card-body">
+                                <div class="alert alert-secondary">
+                                    <strong>Flow:</strong> BEGIN → Update Balance → COMMIT. <strong>Effect:</strong> Balance updated permanently.
+                                </div>
                                 <form id="basicTransactionForm">
                                     <div class="row">
                                         <div class="col-md-3">
@@ -65,6 +102,37 @@
                                         </div>
                                         <div class="col-md-3">
                                             <label class="form-label">Amount</label>
+                                                    <div class="alert alert-info">
+                                                        Use the quick-fill panel to populate sample inputs. You can edit them before running.
+                                                    </div>
+                                                    <div class="border rounded p-3 mb-4" id="quickFillPanel">
+                                                        <div class="row g-3 align-items-end">
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Sample Account A</label>
+                                                                <input type="number" class="form-control" id="sampleAccA" placeholder="e.g., 1001">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Sample Account B</label>
+                                                                <input type="number" class="form-control" id="sampleAccB" placeholder="e.g., 1002">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Small Amount ($)</label>
+                                                                <input type="number" step="0.01" class="form-control" id="sampleAmtSmall" placeholder="e.g., 25">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Large Amount ($)</label>
+                                                                <input type="number" step="0.01" class="form-control" id="sampleAmtLarge" placeholder="e.g., 1000">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mt-3 d-flex gap-2 flex-wrap">
+                                                            <button class="btn btn-outline-primary btn-sm" id="fillDeposit">Fill Deposit</button>
+                                                            <button class="btn btn-outline-primary btn-sm" id="fillWithdraw">Fill Withdrawal (large)</button>
+                                                            <button class="btn btn-outline-primary btn-sm" id="fillTransfer">Fill Transfer</button>
+                                                            <button class="btn btn-outline-primary btn-sm" id="fillSavepoint">Fill Savepoint Ops</button>
+                                                                <button class="btn btn-outline-danger btn-sm" id="fillInsufficient">Preset: Insufficient Funds</button>
+                                                                <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#tclHowModal">How it works</button>
+                                                        </div>
+                                                    </div>
                                             <input type="number" name="amount" class="form-control" placeholder="100.00" step="0.01" required>
                                         </div>
                                         <div class="col-md-3">
@@ -81,6 +149,7 @@
                                     </div>
                                 </form>
                                 <div id="basicTransactionResult" class="mt-3"></div>
+                                <div id="basicTransactionAudit" class="mt-2 text-muted"></div>
                             </div>
                         </div>
 
@@ -95,6 +164,9 @@
                                 </h5>
                             </div>
                             <div class="card-body">
+                                <div class="alert alert-secondary">
+                                    <strong>Flow:</strong> BEGIN → Deduct Balance → Error → ROLLBACK. <strong>Effect:</strong> No change applied.
+                                </div>
                                 <form id="atomicTransferForm">
                                     <div class="row">
                                         <div class="col-md-3">
@@ -116,6 +188,7 @@
                                     </div>
                                 </form>
                                 <div id="atomicTransferResult" class="mt-3"></div>
+                                <div id="atomicTransferAudit" class="mt-2 text-muted"></div>
                             </div>
                         </div>
 
@@ -129,6 +202,9 @@
                                 </h5>
                             </div>
                             <div class="card-body">
+                                <div class="alert alert-secondary">
+                                    <strong>Flow:</strong> BEGIN → Insert/Credit → SAVEPOINT A → Next Operation → ROLLBACK TO A. <strong>Effect:</strong> Partial operation undone.
+                                </div>
                                 <form id="savepointForm">
                                     <div class="row mb-3">
                                         <div class="col-md-4">
@@ -144,6 +220,7 @@
                                     <button type="submit" class="btn btn-warning">Execute SAVEPOINT Demo</button>
                                 </form>
                                 <div id="savepointResult" class="mt-3"></div>
+                                <div id="savepointAudit" class="mt-2 text-muted"></div>
                             </div>
                         </div>
 
@@ -157,6 +234,9 @@
                                 </h5>
                             </div>
                             <div class="card-body">
+                                <div class="alert alert-secondary">
+                                    <strong>Flow:</strong> Multiple operations within single transaction using per-op SAVEPOINTs. Failures roll back to each savepoint while others proceed.
+                                </div>
                                 <form id="batchForm">
                                     <div class="mb-3">
                                         <label class="form-label">Batch Operations (JSON)</label>
@@ -166,6 +246,33 @@
                                     <button type="submit" class="btn btn-purple" style="background-color: #6f42c1; color: white;">Execute Batch Processing</button>
                                 </form>
                                 <div id="batchResult" class="mt-3"></div>
+                                <div id="batchAudit" class="mt-2 text-muted"></div>
+                            </div>
+                        </div>
+
+                        <!-- Nested Transactions Demo -->
+                        <div class="card tcl-card nested mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-layer-group me-2"></i>
+                                    Nested Transactions (SAVEPOINT per sub-op)
+                                    <span class="badge bg-purple ms-2" style="background-color: #6f42c1;">NESTED</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="nestedForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Operations (JSON)</label>
+                                        <textarea name="operations" class="form-control" rows="4" placeholder='[
+  {"accountno": 1, "amount": 100, "type": "deposit", "requiresSavepoint": true},
+  {"accountno": 2, "amount": -50000, "type": "withdrawal", "requiresSavepoint": true}
+]'
+                                            required></textarea>
+                                        <small class="form-text text-muted">Each op: {accountno, amount (+deposit / -withdrawal), type, requiresSavepoint}</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-purple" style="background-color: #6f42c1; color: white;">Execute Nested Transactions</button>
+                                </form>
+                                <div id="nestedResult" class="mt-3"></div>
                             </div>
                         </div>
 
@@ -188,7 +295,39 @@
         </div>
     </div>
 
+        <!-- How it works modal -->
+        <div class="modal fade" id="tclHowModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>TCL Flow & Row Locks</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>BEGIN:</strong> Starts a transaction scope on a dedicated DB connection.</p>
+                        <p><strong>SELECT ... FOR UPDATE:</strong> Locks target rows so concurrent transactions wait, preventing race conditions.</p>
+                        <p><strong>UPDATE/INSERT:</strong> Perform changes while locks are held, ensuring consistency.</p>
+                        <p><strong>SAVEPOINT:</strong> Mark a point to partially roll back without discarding the whole transaction.</p>
+                        <p><strong>ROLLBACK TO SAVEPOINT:</strong> Undo operations after the savepoint; earlier changes remain.</p>
+                        <p><strong>COMMIT:</strong> Persist all changes atomically; if any step fails, <em>ROLLBACK</em> restores previous state.</p>
+                        <hr/>
+                        <p>This project’s controllers use: <code>pool.getConnection()</code> → <code>conn.beginTransaction()</code> → row locks via <code>FOR UPDATE</code> → changes → <code>conn.commit()</code> or <code>conn.rollback()</code>, with <code>conn.release()</code> in <em>finally</em>.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     <script>
+        // Include admin Authorization header if available so logs attribute to current admin
+        function adminAuthHeaders() {
+            try {
+                const token = localStorage.getItem('adminToken');
+                return token ? { Authorization: token } : {};
+            } catch (_) { return {}; }
+        }
         // Console logging function
         function logToConsole(message, type = 'info') {
             const console = document.getElementById('tclConsole');
@@ -253,19 +392,27 @@
             }
         });
 
+        async function fetchBalance(accountno) {
+            try {
+                const res = await fetch(`/api/accounts/${accountno}`);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch { return null; }
+        }
+
         // Basic Transaction
         document.getElementById('basicTransactionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
             data.amount = parseFloat(data.amount);
-
+            const before = await fetchBalance(data.accountno);
             logToConsole(`Starting ${data.type} transaction: Account ${data.accountno}, Amount ${data.amount}`);
 
             try {
                 const response = await fetch('/api/tcl/basic-transaction', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
                     body: JSON.stringify(data)
                 });
 
@@ -285,6 +432,13 @@
                         ${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
                     </div>
                 `;
+
+                const after = await fetchBalance(data.accountno);
+                if (before && after) {
+                    document.getElementById('basicTransactionAudit').innerHTML = `
+                        <small><strong>Balance Change:</strong> $${parseFloat(before.balance).toFixed(2)} → $${parseFloat(after.balance).toFixed(2)}</small>
+                    `;
+                }
 
                 logToConsole(`${data.type} transaction ${result.transaction.toLowerCase()}: ${result.message}`, 
                            result.success ? 'success' : 'error');
@@ -302,52 +456,84 @@
 
         // Atomic Transfer
         document.getElementById('atomicTransferForm').addEventListener('submit', async (e) => {
+            // Prevent accordion jump
             e.preventDefault();
+            e.stopPropagation();
+            const prevScroll = window.scrollY;
             const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            data.amount = parseFloat(data.amount);
+            const raw = Object.fromEntries(formData.entries());
+            const fromAccount = parseInt(String(raw.fromAccount || '').trim(), 10);
+            const toAccount = parseInt(String(raw.toAccount || '').trim(), 10);
+            const amount = parseFloat(String(raw.amount || '').trim());
 
-            logToConsole(`Starting atomic transfer: ${data.amount} from ${data.fromAccount} to ${data.toAccount}`);
+            if (!fromAccount || !toAccount || isNaN(amount) || amount <= 0) {
+                document.getElementById('atomicTransferResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Invalid input</h6>
+                        <p>Provide valid account numbers and a positive amount.</p>
+                    </div>
+                `;
+                window.scrollTo(0, prevScroll);
+                return;
+            }
+
+            const beforeFrom = await fetchBalance(fromAccount);
+            const beforeTo = await fetchBalance(toAccount);
+            logToConsole(`Starting atomic transfer: ${amount} from ${fromAccount} to ${toAccount}`);
 
             try {
                 const response = await fetch('/api/tcl/atomic-transfer', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+                    body: JSON.stringify({ fromAccount, toAccount, amount })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
-                    throw new Error(errorData.error || `Server error: ${response.status}`);
-                }
-                const result = await response.json();
-                
-                const alertClass = result.success ? 'alert-success' : 'alert-danger';
-                const icon = result.success ? 'fa-check-circle' : 'fa-times-circle';
-                
+                const result = await response.json().catch(() => ({ success: false, message: 'Invalid server response' }));
+                const ok = response.ok && result;
+                const alertClass = ok && result.success ? 'alert-success' : 'alert-danger';
+                const icon = ok && result.success ? 'fa-check-circle' : 'fa-times-circle';
+
+                const details = result && result.details ? result.details : { fromAccount, toAccount, amount };
+                const transactionText = result && result.transaction ? `<p><strong>Transaction:</strong> ${result.transaction}</p>` : '';
+                const errText = result && result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : '';
+
                 document.getElementById('atomicTransferResult').innerHTML = `
                     <div class="alert ${alertClass}">
-                        <h6><i class="fas ${icon} me-2"></i>${result.message}</h6>
-                        <p><strong>Transaction:</strong> ${result.transaction}</p>
-                        <p><strong>From:</strong> ${result.details.fromAccount}</p>
-                        <p><strong>To:</strong> ${result.details.toAccount}</p>
-                        <p><strong>Amount:</strong> $${result.details.amount}</p>
-                        ${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
+                        <h6><i class="fas ${icon} me-2"></i>${result && result.message ? result.message : 'Atomic transfer processed'}</h6>
+                        ${transactionText}
+                        <p><strong>From:</strong> ${details.fromAccount}</p>
+                        <p><strong>To:</strong> ${details.toAccount}</p>
+                        <p><strong>Amount:</strong> $${parseFloat(details.amount).toFixed(2)}</p>
+                        ${errText}
                     </div>
                 `;
 
-                logToConsole(`Atomic transfer ${result.transaction.toLowerCase()}: ${result.message}`, 
-                           result.success ? 'success' : 'error');
+                const afterFrom = await fetchBalance(fromAccount);
+                const afterTo = await fetchBalance(toAccount);
+                if (beforeFrom && beforeTo && afterFrom && afterTo) {
+                    document.getElementById('atomicTransferAudit').innerHTML = `
+                        <small>
+                            <strong>Balances:</strong>
+                            Sender $${parseFloat(beforeFrom.balance).toFixed(2)} → $${parseFloat(afterFrom.balance).toFixed(2)};
+                            Receiver $${parseFloat(beforeTo.balance).toFixed(2)} → $${parseFloat(afterTo.balance).toFixed(2)}
+                        </small>
+                    `;
+                }
 
+                logToConsole(`Atomic transfer ${result && result.transaction ? String(result.transaction).toLowerCase() : 'completed'}: ${result && result.message ? result.message : ''}`,
+                    ok && result.success ? 'success' : 'error');
             } catch (error) {
                 document.getElementById('atomicTransferResult').innerHTML = `
                     <div class="alert alert-danger">
-                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Network Error</h6>
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Atomic Transfer Failed</h6>
                         <p>${error.message}</p>
                     </div>
                 `;
-                logToConsole(`Network error: ${error.message}`, 'error');
+                logToConsole(`Atomic transfer error: ${error.message}`, 'error');
             }
+
+            // Restore scroll position to avoid page jump
+            window.scrollTo(0, prevScroll);
         });
 
         // SAVEPOINT Demo
@@ -367,13 +553,13 @@
                 `;
                 return;
             }
-
+            const before = await fetchBalance(data.accountno);
             logToConsole(`Starting SAVEPOINT demo: ${data.operations.length} operations on account ${data.accountno}`);
 
             try {
                 const response = await fetch('/api/tcl/savepoint-demo', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
                     body: JSON.stringify(data)
                 });
 
@@ -417,6 +603,13 @@
                             ${operationsHtml}
                         </div>
                     `;
+
+                    const after = await fetchBalance(data.accountno);
+                    if (before && after) {
+                        document.getElementById('savepointAudit').innerHTML = `
+                            <small><strong>Balance Change:</strong> $${parseFloat(before.balance).toFixed(2)} → $${parseFloat(after.balance).toFixed(2)} (partial rollbacks may revert steps)</small>
+                        `;
+                    }
 
                     logToConsole(`SAVEPOINT demo completed: ${result.results.savepointsCreated} savepoints, ${result.results.rollbacksPerformed} rollbacks`, 'success');
 
@@ -463,7 +656,7 @@
             try {
                 const response = await fetch('/api/tcl/batch-processing', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
                     body: JSON.stringify(data)
                 });
 
@@ -500,6 +693,9 @@
                             ${detailsHtml}
                         </div>
                     `;
+                    document.getElementById('batchAudit').innerHTML = `
+                        <small>Each failed operation was rolled back to its SAVEPOINT; successful ones committed.</small>
+                    `;
 
                     logToConsole(`Batch processing completed: ${result.batchResults.successful} successful, ${result.batchResults.failed} failed`, 'success');
 
@@ -523,8 +719,200 @@
             }
         });
 
+        // Nested Transactions
+        document.getElementById('nestedForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                data.operations = JSON.parse(data.operations);
+            } catch (error) {
+                document.getElementById('nestedResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Invalid JSON</h6>
+                        <p>Please enter valid JSON array</p>
+                    </div>
+                `;
+                return;
+            }
+
+            logToConsole(`Starting nested transactions: ${data.operations.length} operations`);
+
+            try {
+                const response = await fetch('/api/tcl/nested-transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+                const result = await response.json();
+
+                const alertClass = result.success ? 'alert-success' : 'alert-danger';
+                const icon = result.success ? 'fa-check-circle' : 'fa-times-circle';
+
+                let rowsHtml = '<h6>Sub-operations:</h6><table class="table table-sm"><thead><tr><th>Account</th><th>Type</th><th>Amount</th><th>Status</th><th>Savepoint</th><th>Error</th></tr></thead><tbody>';
+                (result.results?.subTransactions || []).forEach(sub => {
+                    const rowClass = sub.status === 'completed' ? 'table-success' : (sub.status === 'rolled back' ? 'table-warning' : 'table-danger');
+                    rowsHtml += `
+                        <tr class="${rowClass}">
+                            <td>${sub.account}</td>
+                            <td>${sub.operation}</td>
+                            <td>$${Math.abs(sub.amount)}</td>
+                            <td><span class="badge ${sub.status === 'completed' ? 'bg-success' : sub.status === 'rolled back' ? 'bg-warning' : 'bg-danger'}">${sub.status}</span></td>
+                            <td>${sub.savepoint ? `<code>${sub.savepoint}</code>` : '-'}</td>
+                            <td>${sub.error || '-'}</td>
+                        </tr>
+                    `;
+                });
+                rowsHtml += '</tbody></table>';
+
+                document.getElementById('nestedResult').innerHTML = `
+                    <div class="alert ${alertClass}">
+                        <h6><i class="fas ${icon} me-2"></i>${result.success ? 'Nested Transactions Completed' : 'Nested Transactions Failed'}</h6>
+                        <p><strong>Final State:</strong> ${result.results?.finalState || (result.success ? 'committed' : 'rolled back')}</p>
+                        ${rowsHtml}
+                    </div>
+                `;
+
+                logToConsole(`Nested transactions ${result.success ? 'committed' : 'rolled back'}`,
+                    result.success ? 'success' : 'error');
+
+            } catch (error) {
+                document.getElementById('nestedResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Network Error</h6>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                logToConsole(`Network error: ${error.message}`, 'error');
+            }
+        });
+
         // Initialize console
         logToConsole('TCL Implementation loaded successfully');
+
+        // Quick-fill helpers
+        function val(id){ return document.getElementById(id).value; }
+        document.getElementById('fillDeposit').addEventListener('click', (e) => {
+            e.preventDefault();
+            const acc = val('sampleAccA');
+            const amt = val('sampleAmtSmall') || '25';
+            if (acc) {
+                document.querySelector('#basicTransactionForm [name="type"]').value = 'deposit';
+                document.querySelector('#basicTransactionForm [name="accountno"]').value = acc;
+                document.querySelector('#basicTransactionForm [name="amount"]').value = amt;
+            }
+        });
+        document.getElementById('fillWithdraw').addEventListener('click', (e) => {
+            e.preventDefault();
+            const acc = val('sampleAccA');
+            const amt = val('sampleAmtLarge') || '1000';
+            if (acc) {
+                document.querySelector('#basicTransactionForm [name="type"]').value = 'withdraw';
+                document.querySelector('#basicTransactionForm [name="accountno"]').value = acc;
+                document.querySelector('#basicTransactionForm [name="amount"]').value = amt;
+            }
+        });
+        document.getElementById('fillTransfer').addEventListener('click', (e) => {
+            e.preventDefault();
+            const a = val('sampleAccA');
+            const b = val('sampleAccB');
+            const amt = val('sampleAmtSmall') || '25';
+            if (a && b) {
+                document.querySelector('#atomicTransferForm [name="fromAccount"]').value = a;
+                document.querySelector('#atomicTransferForm [name="toAccount"]').value = b;
+                document.querySelector('#atomicTransferForm [name="amount"]').value = amt;
+            }
+        });
+        document.getElementById('fillSavepoint').addEventListener('click', (e) => {
+            e.preventDefault();
+            const acc = val('sampleAccA');
+            if (acc) {
+                document.querySelector('#savepointForm [name="accountno"]').value = acc;
+                document.querySelector('#savepointForm [name="operations"]').value = JSON.stringify([
+                    { type: 'credit', amount: 20 },
+                    { type: 'debit', amount: 50 },
+                    { type: 'credit', amount: 10 }
+                ]);
+            }
+        });
+
+            // Insufficient funds preset for rollback demo
+            document.getElementById('fillInsufficient').addEventListener('click', async (e) => {
+                e.preventDefault();
+                const acc = val('sampleAccA');
+                if (!acc) return;
+                const info = await fetchBalance(acc);
+                const current = info ? parseFloat(info.balance) : 0;
+                const amt = (current + 100).toFixed(2); // ensure insufficient
+                document.querySelector('#basicTransactionForm [name="type"]').value = 'withdraw';
+                document.querySelector('#basicTransactionForm [name="accountno"]').value = acc;
+                document.querySelector('#basicTransactionForm [name="amount"]').value = amt;
+            });
+
+        // Concurrency demo: fire two parallel operations (deposit/withdraw on same account)
+        document.getElementById('concurrencyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const data = Object.fromEntries(fd.entries());
+            const accountno = parseInt(String(data.accountno || '').trim(), 10);
+            const amountA = parseFloat(String(data.amountA || '').trim());
+            const amountB = parseFloat(String(data.amountB || '').trim());
+            const op = String(data.op || '').trim();
+
+            if (!accountno || isNaN(amountA) || isNaN(amountB) || amountA <= 0 || amountB <= 0 || (op !== 'deposit' && op !== 'withdraw')) {
+                document.getElementById('concurrencyResult').innerHTML = '<div class="alert alert-danger"><h6><i class="fas fa-exclamation-triangle me-2"></i>Invalid input</h6><p>Provide account number, positive amounts, and choose deposit/withdraw.</p></div>';
+                return;
+            }
+
+            const before = await fetchBalance(accountno);
+            logToConsole(`Starting concurrent ${op} ops on ${accountno}: A=${amountA}, B=${amountB}`);
+
+            const endpoint = '/api/tcl/basic-transaction';
+            const bodyA = JSON.stringify({ accountno, type: op === 'withdraw' ? 'withdraw' : 'deposit', amount: amountA });
+            const bodyB = JSON.stringify({ accountno, type: op === 'withdraw' ? 'withdraw' : 'deposit', amount: amountB });
+            const reqInit = { method: 'POST', headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() } };
+
+            const [resA, resB] = await Promise.all([
+                fetch(endpoint, { ...reqInit, body: bodyA }),
+                fetch(endpoint, { ...reqInit, body: bodyB })
+            ]).catch(err => {
+                document.getElementById('concurrencyResult').innerHTML = '<div class="alert alert-danger"><h6><i class="fas fa-times-circle me-2"></i>Concurrency Error</h6><p>' + err.message + '</p></div>';
+                return [null, null];
+            });
+            if (!resA || !resB) return;
+
+            const [outA, outB] = await Promise.all([resA.json(), resB.json()]).catch(() => [{ success: false, message: 'Invalid response' }, { success: false, message: 'Invalid response' }]);
+            const alertA = outA && outA.success ? 'success' : 'danger';
+            const alertB = outB && outB.success ? 'success' : 'danger';
+            const iconA = outA && outA.success ? 'fa-check-circle' : 'fa-times-circle';
+            const iconB = outB && outB.success ? 'fa-check-circle' : 'fa-times-circle';
+            const userAError = outA && outA.error ? '<p><strong>Error:</strong> ' + outA.error + '</p>' : '';
+            const userBError = outB && outB.error ? '<p><strong>Error:</strong> ' + outB.error + '</p>' : '';
+            const userAHtml = '<div class="alert alert-' + alertA + '">' +
+                                '<h6><i class="fas ' + iconA + ' me-2"></i>User A Result</h6>' +
+                                '<p>' + (outA && outA.message ? outA.message : '') + '</p>' +
+                                userAError +
+                              '</div>';
+            const userBHtml = '<div class="alert alert-' + alertB + '">' +
+                                '<h6><i class="fas ' + iconB + ' me-2"></i>User B Result</h6>' +
+                                '<p>' + (outB && outB.message ? outB.message : '') + '</p>' +
+                                userBError +
+                              '</div>';
+            const html = '<div class="row g-3"><div class="col-md-6">' + userAHtml + '</div><div class="col-md-6">' + userBHtml + '</div></div>';
+            document.getElementById('concurrencyResult').innerHTML = html;
+
+            const after = await fetchBalance(accountno);
+            if (before && after) {
+                const finalBal = parseFloat(after.balance).toFixed(2);
+                const startBal = parseFloat(before.balance).toFixed(2);
+                document.getElementById('concurrencyAudit').innerHTML = '<small><strong>Final Balance:</strong> $' + finalBal + ' (Started at $' + startBal + '). Parallel ops were serialized using row locks.</small>';
+            }
+        });
     </script>
 </body>
 </html>

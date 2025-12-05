@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audit Log - CBS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h4 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Audit Log</h4>
+      <a href="/" class="btn btn-outline-secondary"><i class="fas fa-home me-1"></i> Home</a>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <form id="searchForm" class="row g-2 align-items-end mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <input type="text" id="search" class="form-control" placeholder="action, description, user..." />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Limit</label>
+            <select id="limit" class="form-select">
+              <option>50</option>
+              <option selected>100</option>
+              <option>200</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit"><i class="fas fa-search me-1"></i> Apply</button>
+          </div>
+        </form>
+
+        <div id="list" class="table-responsive">
+          <div class="text-center text-muted">Loading audit log...</div>
+        </div>
+        <div id="errorBanner" class="alert alert-danger d-none mt-3" role="alert">
+          <div><strong><i class="fas fa-exclamation-triangle me-1"></i>Failed to load Audit Log</strong></div>
+          <div id="errorDetail" class="small"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function adminAuthHeaders() {
+      try { const t = localStorage.getItem('adminToken'); return t ? { Authorization: t } : {}; } catch { return {}; }
+    }
+
+    async function loadAuditLog() {
+      const q = new URLSearchParams();
+      const search = document.getElementById('search').value.trim();
+      const limit = document.getElementById('limit').value || '100';
+      if (search) q.set('search', search);
+      q.set('limit', limit);
+      const res = await fetch('/api/reports/audit-log?' + q.toString(), { headers: { ...adminAuthHeaders() } });
+      let body;
+      try { body = await res.json(); } catch (_) { body = { success:false, error:'Invalid JSON response' }; }
+      if (!res.ok || !body.success) {
+        document.getElementById('list').innerHTML = '<div class="alert alert-danger">Failed to load audit log</div>';
+        const errText = 'HTTP ' + res.status + ' ' + (res.statusText || '') + (body && body.error ? (' — ' + body.error) : '');
+        document.getElementById('errorDetail').textContent = errText.trim();
+        document.getElementById('errorBanner').classList.remove('d-none');
+        return;
+      } else {
+        document.getElementById('errorBanner').classList.add('d-none');
+      }
+      const rows = body.logs || [];
+      const html = `
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${new Date(r.created_at).toLocaleString()}</td>
+                <td>${r.fullname || r.username || '—'}</td>
+                <td><span class="badge bg-secondary">${r.action}</span></td>
+                <td>${r.description || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+      document.getElementById('list').innerHTML = html;
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', (e) => { e.preventDefault(); loadAuditLog(); });
+    document.addEventListener('DOMContentLoaded', loadAuditLog);
+  </script>
+</body>
+</html>

@@ -1,8 +1,25 @@
 const pool = require('../db');
 
+// Extract admin userid from Authorization token if present (non-fatal)
+function getEffectiveUserId(req) {
+    try {
+        const token = req.headers?.authorization || req.query?.token;
+        if (token && typeof token === 'string') {
+            const parts = token.split('_');
+            if (parts.length >= 2 && parts[0] === 'admin') {
+                const id = parseInt(parts[1], 10);
+                if (!isNaN(id) && id > 0) return id;
+            }
+        }
+    } catch (_) { /* ignore */ }
+    const bodyId = req.body && req.body.userid ? parseInt(req.body.userid, 10) : null;
+    return !isNaN(bodyId) && bodyId > 0 ? bodyId : 1;
+}
+
 // Basic Transaction with TCL
 exports.basicTransaction = async (req, res) => {
-    const { accountno, amount, type, userid = 1 } = req.body;
+    const { accountno, amount, type } = req.body;
+    const userId = getEffectiveUserId(req);
     
     const conn = await pool.getConnection();
     try {
@@ -30,13 +47,13 @@ exports.basicTransaction = async (req, res) => {
         // Log transaction
         await conn.execute(
             `INSERT INTO TransactionLog (accountno, type, amount, performed_by) VALUES (?, ?, ?, ?)`,
-            [accountno, type, amount, userid]
+            [accountno, type, amount, userId]
         );
         
         // Audit
         await conn.execute(
             `INSERT INTO AuditLog (userid, action, description) VALUES (?, ?, ?)`,
-            [userid, `${type.toUpperCase()}_TCL`, `${type} of ${amount} to account ${accountno} - COMMITTED`]
+            [userId, `${type.toUpperCase()}_TCL`, `${type} of ${amount} to account ${accountno} - COMMITTED`]
         );
         
         await conn.commit();
@@ -53,7 +70,7 @@ exports.basicTransaction = async (req, res) => {
         // Log rollback
         await conn.execute(
             `INSERT INTO AuditLog (userid, action, description) VALUES (?, ?, ?)`,
-            [userid, `${type.toUpperCase()}_ROLLBACK`, `${type} of ${amount} to account ${accountno} - ROLLED BACK: ${err.message}`]
+            [userId, `${type.toUpperCase()}_ROLLBACK`, `${type} of ${amount} to account ${accountno} - ROLLED BACK: ${err.message}`]
         );
         
         res.status(500).json({
@@ -68,7 +85,8 @@ exports.basicTransaction = async (req, res) => {
 
 // Atomic Transfer with TCL
 exports.atomicTransfer = async (req, res) => {
-    const { fromAccount, toAccount, amount, userid = 1 } = req.body;
+    const { fromAccount, toAccount, amount } = req.body;
+    const userId = getEffectiveUserId(req);
     
     const conn = await pool.getConnection();
     try {
@@ -111,20 +129,20 @@ exports.atomicTransfer = async (req, res) => {
         await conn.execute(
             `INSERT INTO TransactionLog (accountno, type, amount, reference_account, performed_by) 
              VALUES (?, 'transfer', ?, ?, ?)`,
-            [fromAccount, amount, toAccount, userid]
+            [fromAccount, amount, toAccount, userId]
         );
         
         await conn.execute(
             `INSERT INTO TransactionLog (accountno, type, amount, reference_account, performed_by) 
              VALUES (?, 'transfer', ?, ?, ?)`,
-            [toAccount, amount, fromAccount, userid]
+            [toAccount, amount, fromAccount, userId]
         );
         
         // Audit
         await conn.execute(
             `INSERT INTO AuditLog (userid, action, description) 
              VALUES (?, 'ATOMIC_TRANSFER_SUCCESS', ?)`,
-            [userid, `Atomic transfer: ${amount} from ${fromAccount} to ${toAccount} - COMMITTED`]
+            [userId, `Atomic transfer: ${amount} from ${fromAccount} to ${toAccount} - COMMITTED`]
         );
         
         await conn.commit();
@@ -149,7 +167,7 @@ exports.atomicTransfer = async (req, res) => {
         await conn.execute(
             `INSERT INTO AuditLog (userid, action, description) 
              VALUES (?, 'ATOMIC_TRANSFER_ROLLBACK', ?)`,
-            [userid, `Atomic transfer rolled back: ${err.message}`]
+            [userId, `Atomic transfer rolled back: ${err.message}`]
         );
         
         res.status(500).json({
@@ -164,7 +182,8 @@ exports.atomicTransfer = async (req, res) => {
 
 // SAVEPOINT Demonstration
 exports.savepointDemo = async (req, res) => {
-    const { accountno, operations, userid = 1 } = req.body;
+    const { accountno, operations } = req.body;
+    const userId = getEffectiveUserId(req);
     
     const conn = await pool.getConnection();
     try {
@@ -268,7 +287,7 @@ exports.savepointDemo = async (req, res) => {
             await conn.execute(
                 `INSERT INTO TransactionLog (accountno, type, amount, performed_by) 
                  VALUES (?, 'batch', ?, ?)`,
-                [accountno, Math.abs(netAmount), userid]
+                [accountno, Math.abs(netAmount), userId]
             );
         }
         
@@ -276,7 +295,7 @@ exports.savepointDemo = async (req, res) => {
         await conn.execute(
             `INSERT INTO AuditLog (userid, action, description) 
              VALUES (?, 'SAVEPOINT_DEMO', ?)`,
-            [userid, `SAVEPOINT demo: ${results.savepointsCreated} savepoints, ${results.rollbacksPerformed} rollbacks`]
+            [userId, `SAVEPOINT demo: ${results.savepointsCreated} savepoints, ${results.rollbacksPerformed} rollbacks`]
         );
         
         await conn.commit();
@@ -303,7 +322,8 @@ exports.savepointDemo = async (req, res) => {
 
 // Nested Transaction Demo
 exports.nestedTransactions = async (req, res) => {
-    const { operations, userid = 1 } = req.body;
+    const { operations } = req.body;
+    const userId = getEffectiveUserId(req);
     
     const conn = await pool.getConnection();
     try {
@@ -338,7 +358,7 @@ exports.nestedTransactions = async (req, res) => {
                 await conn.execute(
                     `INSERT INTO TransactionLog (accountno, type, amount, performed_by) 
                      VALUES (?, ?, ?, ?)`,
-                    [op.accountno, op.type, Math.abs(op.amount), userid]
+                    [op.accountno, op.type, Math.abs(op.amount), userId]
                 );
                 
                 results.subTransactions.push({
@@ -413,7 +433,8 @@ exports.nestedTransactions = async (req, res) => {
 
 // Batch Processing with Individual Rollback
 exports.batchProcessing = async (req, res) => {
-    const { operations, userid = 1 } = req.body;
+    const { operations } = req.body;
+    const userId = getEffectiveUserId(req);
     
     const conn = await pool.getConnection();
     try {
@@ -472,7 +493,7 @@ exports.batchProcessing = async (req, res) => {
                 await conn.execute(
                     `INSERT INTO TransactionLog (accountno, type, amount, performed_by) 
                      VALUES (?, ?, ?, ?)`,
-                    [op.accountno, transactionType, Math.abs(op.amount), userid]
+                    [op.accountno, transactionType, Math.abs(op.amount), userId]
                 );
                 
                 results.processed++;
@@ -519,7 +540,7 @@ exports.batchProcessing = async (req, res) => {
         await conn.execute(
             `INSERT INTO AuditLog (userid, action, description) 
              VALUES (?, 'BATCH_PROCESSING', ?)`,
-            [userid, `Batch processing: ${results.successful} successful, ${results.failed} failed out of ${results.processed} total`]
+            [userId, `Batch processing: ${results.successful} successful, ${results.failed} failed out of ${results.processed} total`]
         );
         
         await conn.commit();

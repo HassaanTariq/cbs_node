@@ -1,5 +1,6 @@
 
 const pool = require('../db');
+const bcrypt = require('bcryptjs');
 
 // Customer login - DEBUG VERSION
 exports.customerLogin = async (req, res) => {
@@ -138,4 +139,91 @@ exports.customerLogout = async (req, res) => {
         success: true,
         message: 'Logout successful'
     });
+};
+
+// Admin login (staff) - demo-friendly
+exports.adminLogin = async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        if (!username || !password) {
+            return res.status(400).json({ success: false, error: 'Username and password are required' });
+        }
+
+        const [rows] = await pool.execute(
+            `SELECT userid, username, fullname, role, password_hash FROM UserAccount WHERE username = ? AND role = 'admin'`,
+            [username]
+        );
+
+        if (rows.length === 0) {
+            return res.status(401).json({ success: false, error: 'Invalid admin credentials' });
+        }
+
+        const user = rows[0];
+
+        let passwordOk = false;
+        if (user.password_hash) {
+            try {
+                passwordOk = await bcrypt.compare(password, user.password_hash);
+            } catch (e) {
+                passwordOk = false;
+            }
+        }
+
+        // Demo fallback: if no valid hash, accept any non-empty password
+        if (!user.password_hash) {
+            passwordOk = password && password.trim().length > 0;
+        }
+
+        if (!passwordOk) {
+            return res.status(401).json({ success: false, error: 'Invalid admin credentials' });
+        }
+
+        const sessionToken = `admin_${user.userid}_${Date.now()}`;
+        res.json({
+            success: true,
+            message: 'Admin login successful',
+            admin: {
+                userid: user.userid,
+                username: user.username,
+                fullname: user.fullname,
+                role: user.role
+            },
+            sessionToken
+        });
+    } catch (err) {
+        console.error('Admin login error:', err);
+        res.status(500).json({ success: false, error: 'Server error during admin login' });
+    }
+};
+
+// Middleware to verify admin session
+exports.verifyAdmin = async (req, res, next) => {
+    const token = req.headers.authorization || req.query.token;
+    if (!token) {
+        return res.status(401).json({ error: 'Admin access token required' });
+    }
+    const parts = token.split('_');
+    if (parts.length < 2 || parts[0] !== 'admin') {
+        return res.status(401).json({ error: 'Invalid admin token' });
+    }
+    const userid = parts[1];
+    try {
+        const [rows] = await pool.execute(
+            `SELECT userid, username, fullname, role FROM UserAccount WHERE userid = ? AND role = 'admin'`,
+            [userid]
+        );
+        if (rows.length === 0) {
+            return res.status(401).json({ error: 'Invalid admin' });
+        }
+        req.admin = rows[0];
+        next();
+    } catch (err) {
+        console.error('Verify admin error:', err);
+        res.status(401).json({ error: 'Admin verification failed' });
+    }
+};
+
+exports.adminLogout = async (req, res) => {
+    res.json({ success: true, message: 'Admin logout successful' });
 };

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports & Analytics - CBS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Reports & Analytics</h4>
+      <a href="/" class="btn btn-outline-secondary"><i class="fas fa-home me-1"></i> Home</a>
+    </div>
+
+    <div class="row g-3 mb-4" id="summaryCards">
+      <div class="col-md-3">
+        <div class="card"><div class="card-body text-center">
+          <div class="text-muted">Customers</div>
+          <div class="fs-4 fw-semibold" id="sumCustomers">...</div>
+        </div></div>
+      </div>
+      <div class="col-md-3">
+        <div class="card"><div class="card-body text-center">
+          <div class="text-muted">Active Accounts</div>
+          <div class="fs-4 fw-semibold" id="sumAccounts">...</div>
+        </div></div>
+      </div>
+      <div class="col-md-3">
+        <div class="card"><div class="card-body text-center">
+          <div class="text-muted">Transactions</div>
+          <div class="fs-4 fw-semibold" id="sumTransactions">...</div>
+        </div></div>
+      </div>
+      <div class="col-md-3">
+        <div class="card"><div class="card-body text-center">
+          <div class="text-muted">Total Balance</div>
+          <div class="fs-4 fw-semibold" id="sumBalance">...</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header"><i class="fas fa-exchange-alt me-2"></i>Recent Transactions</div>
+      <div class="card-body">
+        <div id="recentTx" class="table-responsive"><div class="text-center text-muted">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="fas fa-clipboard-list me-2"></i>Recent Audit Log</div>
+      <div class="card-body">
+        <div id="recentAudit" class="table-responsive"><div class="text-center text-muted">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function adminAuthHeaders(){ try{const t=localStorage.getItem('adminToken'); return t?{ Authorization:t }:{} }catch{return{}} }
+
+    async function loadSummary(){
+      try {
+        const res = await fetch('/api/reports/summary', { headers: { ...adminAuthHeaders() }});
+        const body = await res.json();
+        if (!res.ok || !body.success) throw new Error(body.error || 'Summary failed');
+        const s = body.summary;
+        document.getElementById('sumCustomers').textContent = s.customers;
+        document.getElementById('sumAccounts').textContent = s.accounts;
+        document.getElementById('sumTransactions').textContent = s.transactions;
+        document.getElementById('sumBalance').textContent = '$' + Number(s.totalBalance).toLocaleString('en-US', { minimumFractionDigits: 2 });
+      } catch (e) {
+        document.getElementById('summaryCards').insertAdjacentHTML('beforeend', '<div class="col-12"><div class="alert alert-danger">Failed to load summary</div></div>');
+      }
+    }
+
+    async function loadRecentTransactions(){
+      try{
+        const res = await fetch('/api/transactions/list?limit=10');
+        const rows = await res.json();
+        const html = `
+          <table class="table table-sm table-hover">
+            <thead><tr><th>Time</th><th>Type</th><th>Account</th><th>Ref</th><th>Amount</th></tr></thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr>
+                  <td>${new Date(r.created_at).toLocaleString()}</td>
+                  <td>${r.type}</td>
+                  <td>${r.accountno}</td>
+                  <td>${r.reference_account||'-'}</td>
+                  <td>$${Number(r.amount).toFixed(2)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+        document.getElementById('recentTx').innerHTML = html;
+      }catch(e){ document.getElementById('recentTx').innerHTML = '<div class="alert alert-danger">Failed to load transactions</div>'; }
+    }
+
+    async function loadRecentAudit(){
+      try{
+        const res = await fetch('/api/reports/audit-log?limit=20', { headers: { ...adminAuthHeaders() }});
+        const body = await res.json();
+        if (!res.ok || !body.success) throw new Error(body.error||'audit failed');
+        const rows = body.logs || [];
+        const html = `
+          <table class="table table-sm table-hover">
+            <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Description</th></tr></thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr>
+                  <td>${new Date(r.created_at).toLocaleString()}</td>
+                  <td>${r.fullname || r.username || '—'}</td>
+                  <td>${r.action}</td>
+                  <td>${r.description||''}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+        document.getElementById('recentAudit').innerHTML = html;
+      }catch(e){ document.getElementById('recentAudit').innerHTML = '<div class="alert alert-danger">Failed to load audit log</div>'; }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{ loadSummary(); loadRecentTransactions(); loadRecentAudit(); });
+  </script>
+</body>
+</html>

@@ -91,7 +91,8 @@ INSERT INTO UserAccount (username, fullname, role, password_hash) VALUES
 ('amer.khan','Amer Khan','admin','$2y$10$examplehash1'),
 ('sana.saleem','Sana Saleem','employee','$2y$10$examplehash2'),
 ('bilal.ops','Bilal Operations','systemoperator','$2y$10$examplehash3'),
-('maryam.teller','Maryam Teller','employee','$2y$10$examplehash4');
+('maryam.teller','Maryam Teller','employee','$2y$10$examplehash4'),
+('hassaantariq','Hassaan Tariq','admin','$2a$10$PetEOCgbHZZ33OIZpJdkC.mO4S6FuucIq2dCrOh5.gywdEkky.KSO');
 
 -- Seed data: Customer (3-4)
 INSERT INTO Customer (fullname, email, phone, cnic, address) VALUES
